@@ -111,7 +111,7 @@ void update()
  * @Description     img:    i -------- j  -  -------- k
  *                  imu:    - jjjjjjjj - j/k kkkkkkkk -  
  *                  直到把缓存中的图像特征数据或者IMU数据取完，才能够跳出此函数，并返回数据           
- * @return  vector<std::pair<vector<ImuConstPtr>, PointCloudConstPtr>> (IMUs, img_msg)s
+ * @return  vector<std::pair<vector<ImuConstPtr>, PointCloudConstPtr>> (IMUs, img_msg)
 */
 std::vector<std::pair<std::vector<sensor_msgs::ImuConstPtr>, sensor_msgs::PointCloudConstPtr>>
 getMeasurements()
@@ -164,6 +164,7 @@ getMeasurements()
 }
 
 //imu回调函数，将imu_msg保存到imu_buf，IMU状态递推并发布[P,Q,V,header]
+// P-空间平移位置   Q-旋转信息   V-平移速度 
 void imu_callback(const sensor_msgs::ImuConstPtr &imu_msg)
 {
     //判断时间间隔是否为正
@@ -431,7 +432,7 @@ int main(int argc, char **argv)
     ros::Subscriber sub_imu = n.subscribe(IMU_TOPIC, 2000, imu_callback, ros::TransportHints().tcpNoDelay()); // IMU预积分是在这个后端线程中
     ros::Subscriber sub_image = n.subscribe("/feature_tracker/feature", 2000, feature_callback); // 视觉前段提取的特征点
     ros::Subscriber sub_restart = n.subscribe("/feature_tracker/restart", 2000, restart_callback); // 接受重新启动信号
-    ros::Subscriber sub_relo_points = n.subscribe("/pose_graph/match_points", 2000, relocalization_callback); // 四自由度姿态图信息
+    ros::Subscriber sub_relo_points = n.subscribe("/pose_graph/match_points", 2000, relocalization_callback); // 接受四自由度姿态图
 
     //创建VIO主线程
     std::thread measurement_process{process};
