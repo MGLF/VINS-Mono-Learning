@@ -428,10 +428,10 @@ int main(int argc, char **argv)
     registerPub(n);
 
     //订阅IMU、feature、restart、match_points的topic,执行各自回调函数
-    ros::Subscriber sub_imu = n.subscribe(IMU_TOPIC, 2000, imu_callback, ros::TransportHints().tcpNoDelay());
-    ros::Subscriber sub_image = n.subscribe("/feature_tracker/feature", 2000, feature_callback);
-    ros::Subscriber sub_restart = n.subscribe("/feature_tracker/restart", 2000, restart_callback);
-    ros::Subscriber sub_relo_points = n.subscribe("/pose_graph/match_points", 2000, relocalization_callback);
+    ros::Subscriber sub_imu = n.subscribe(IMU_TOPIC, 2000, imu_callback, ros::TransportHints().tcpNoDelay()); // IMU预积分是在这个后端线程中
+    ros::Subscriber sub_image = n.subscribe("/feature_tracker/feature", 2000, feature_callback); // 视觉前段提取的特征点
+    ros::Subscriber sub_restart = n.subscribe("/feature_tracker/restart", 2000, restart_callback); // 接受重新启动信号
+    ros::Subscriber sub_relo_points = n.subscribe("/pose_graph/match_points", 2000, relocalization_callback); // 四自由度姿态图信息
 
     //创建VIO主线程
     std::thread measurement_process{process};
