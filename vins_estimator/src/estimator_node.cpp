@@ -45,6 +45,7 @@ bool init_imu = 1;
 double last_imu_t = 0;
 
 //从IMU测量值imu_msg和上一个PVQ递推得到下一个tmp_Q，tmp_P，tmp_V，中值积分
+//方法：先根据角速度积分将IMU坐标系下的加速度转到世界坐标系下,得到旋转Q，然后再通过加速度计算速度V和位置P
 void predict(const sensor_msgs::ImuConstPtr &imu_msg)
 {
     double t = imu_msg->header.stamp.toSec();
@@ -59,7 +60,7 @@ void predict(const sensor_msgs::ImuConstPtr &imu_msg)
 
     double dt = t - latest_time;
     latest_time = t;
-
+    //这里的线性加速度、加速度是在当前的IMU坐标系下的，包含传感器的漂移和重力加速度
     double dx = imu_msg->linear_acceleration.x;
     double dy = imu_msg->linear_acceleration.y;
     double dz = imu_msg->linear_acceleration.z;
@@ -69,17 +70,23 @@ void predict(const sensor_msgs::ImuConstPtr &imu_msg)
     double ry = imu_msg->angular_velocity.y;
     double rz = imu_msg->angular_velocity.z;
     Eigen::Vector3d angular_velocity{rx, ry, rz};
-
+    //位置计算
+    //计算在世界坐标系下的，移除了加速度计漂移和重力加速度的线性加速度
     Eigen::Vector3d un_acc_0 = tmp_Q * (acc_0 - tmp_Ba) - estimator.g;
-
+    //计算这次与上一次角速度的平均角速度值
     Eigen::Vector3d un_gyr = 0.5 * (gyr_0 + angular_velocity) - tmp_Bg;
-    tmp_Q = tmp_Q * Utility::deltaQ(un_gyr * dt);
-
+    //更新旋转角度，角度积分得到旋转角度，并得到当前的朝向，进而得到当前IMU在世界坐标系的朝向
+    tmp_Q = tmp_Q * Utility::deltaQ(un_gyr * dt); //Utility::deltaQ函数的作用是将旋转角度转换成四元数
+    //与旋转角度相乘，计算在世界坐标系下移除了加速度计漂移和重力加速度的线性加速度
     Eigen::Vector3d un_acc_1 = tmp_Q * (linear_acceleration - tmp_Ba) - estimator.g;
-
+    
+    //计算平均加速度来计算法计算位移和速度
     Eigen::Vector3d un_acc = 0.5 * (un_acc_0 + un_acc_1);
-
+    
+    // 运动方程估计粗糙的PVQ
+    // x = x0 + vt + 1/2at*t
     tmp_P = tmp_P + dt * tmp_V + 0.5 * dt * dt * un_acc;
+    // v = v0 + at 
     tmp_V = tmp_V + dt * un_acc;
 
     acc_0 = linear_acceleration;
@@ -165,6 +172,8 @@ getMeasurements()
 
 //imu回调函数，将imu_msg保存到imu_buf，IMU状态递推并发布[P,Q,V,header]
 // P-空间平移位置   Q-旋转信息   V-平移速度 
+// 调用predict函数对当前imu的位置、朝向、速度进行计算
+// 发送imu的里程计信息
 void imu_callback(const sensor_msgs::ImuConstPtr &imu_msg)
 {
     //判断时间间隔是否为正
@@ -192,6 +201,7 @@ void imu_callback(const sensor_msgs::ImuConstPtr &imu_msg)
         header.frame_id = "world";
 
         //发布最新的由IMU直接递推得到的PQV
+        //发送imu的里程计信息
         if (estimator.solver_flag == Estimator::SolverFlag::NON_LINEAR)
             pubLatestOdometry(tmp_P, tmp_Q, tmp_V, header);
     }
