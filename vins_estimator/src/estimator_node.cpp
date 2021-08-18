@@ -83,7 +83,7 @@ void predict(const sensor_msgs::ImuConstPtr &imu_msg)
     //计算平均加速度来计算法计算位移和速度
     Eigen::Vector3d un_acc = 0.5 * (un_acc_0 + un_acc_1);
     
-    // 运动方程估计粗糙的PVQ
+    // 运动方程估计粗略的PVQ
     // x = x0 + vt + 1/2at*t
     tmp_P = tmp_P + dt * tmp_V + 0.5 * dt * dt * un_acc;
     // v = v0 + at 
