@@ -153,9 +153,9 @@ void FeatureTracker::readImage(const cv::Mat &_img, double _cur_time)
         
         /*
         void cv::calcOpticalFlowPyrLK	(	
-        InputArray 	prevImg,
-        InputArray 	nextImg,
-        InputArray 	prevPts,
+        InputArray 	prevImg,       在时间 t 的第一帧
+        InputArray 	nextImg,       在时间 t + dt 的第二帧
+        InputArray 	prevPts,       第一帧的金字塔缓存. 如果指针非NULL , 则缓存必须有足够的空间来存储金字塔从层 1 到层 #level 的内容。
         InputOutputArray 	nextPts,
         OutputArray 	status,
         OutputArray 	err,
